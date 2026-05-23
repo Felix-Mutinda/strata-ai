@@ -1,5 +1,5 @@
 [project]
-name = "strata-ai"
+name = "strata-ai-workspace"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -7,4 +7,4 @@ requires-python = ">=3.14"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["strata_sdk", "strata_cli"]
+members = ["strata-ai", "strata-cli"]
