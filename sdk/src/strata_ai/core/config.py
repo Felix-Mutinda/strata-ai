@@ -31,6 +31,19 @@ class StrataBaseConfig(BaseSettings):
     max_iterations: int = Field(default=10)
     temperature: float = Field(default=0.0)
 
+    # ── Enterprise Logging Defaults ─────────────────────────────────────────
+    log_level: str = Field(default="INFO")
+    log_format: str = Field(
+        default="{time:YYYY-MM-DD HH:mm:ss.SSSZZ} | {level: <8} | {extra[service]:<20} | {extra[env]:<10} | {extra[correlation_id]:<36} | {message}"
+    )
+    log_serialize: bool = Field(
+        default=False,
+        description="Emit JSON-structured logs for production sinks (ELK, Datadog, etc.)",
+    )
+    log_file: Optional[str] = Field(
+        default=None, description="Optional file path for log rotation"
+    )
+
     @classmethod
     def from_env(cls) -> "StrataBaseConfig":
         """Factory that reads STRATA_AI_ prefixed env vars."""
