@@ -7,7 +7,13 @@ authors = [
     { name = "felix", email = "1mutindafelix@gmail.com" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "fastapi==0.136.3",
+    "httpx==0.28.1",
+    "loguru==0.7.3",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.1",
+]
 
 
 [build-system]
