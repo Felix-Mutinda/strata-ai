@@ -4,9 +4,13 @@ from fastapi.responses import JSONResponse
 
 
 async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
+    request: Request, exc: Exception
 ) -> JSONResponse:
     """RFC 9457 ProblemDetail format for validation errors."""
+    # Runtime check to satisfy static type checker
+    if not isinstance(exc, RequestValidationError):
+        raise exc  # Re-raise if not the expected error type
+
     return JSONResponse(
         status_code=422,
         content={

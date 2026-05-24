@@ -23,14 +23,14 @@ class _TestAgent(BaseAgent):
 class TestAgentRuntimeABC:
     def test_cannot_instantiate_abstract_runtime(self):
         with pytest.raises(TypeError):
-            AgentRuntime()
+            AgentRuntime()  # type: ignore[abstract]
 
     def test_subclass_must_implement_abstract_methods(self):
         class IncompleteRuntime(AgentRuntime):
             pass
 
         with pytest.raises(TypeError):
-            IncompleteRuntime()
+            IncompleteRuntime()  # type: ignore[abstract]
 
 
 class TestBaseAgentWithMockRuntime:

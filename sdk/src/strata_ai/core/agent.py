@@ -1,6 +1,6 @@
 from __future__ import annotations
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 from strata_ai.core.models import AgentConfig, AgentResult, AgentDefinition
 from strata_ai.runtime.base import AgentRuntime
@@ -17,9 +17,9 @@ class BaseAgent:
         self,
         config: AgentConfig,
         runtime: AgentRuntime,
-        tools: List[Any] = None,
+        tools: List[Any] | None = None,
         memory: Any = None,
-        guardrails: List[Any] = None,
+        guardrails: List[Any] | None = None,
     ):
         self.config = config
         self.runtime = runtime
@@ -41,7 +41,9 @@ class BaseAgent:
             self._compiled, input, config={"thread_id": thread_id, **kwargs}
         )
 
-    async def stream(self, input: Dict[str, Any], **kwargs):
+    async def stream(
+        self, input: Dict[str, Any], **kwargs
+    ) -> AsyncIterator[Dict[str, Any]]:
         await self.compile()
         async for event in self.runtime.stream(
             self._compiled, input, config={**kwargs}

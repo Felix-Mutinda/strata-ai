@@ -22,13 +22,13 @@ class AgentRuntime(ABC):
         """Execute the agent until completion or pause."""
 
     @abstractmethod
-    async def stream(
+    def stream(
         self,
         compiled_agent: Any,
         input: Dict[str, Any],
         config: Dict[str, Any] | None = None,
     ) -> AsyncIterator[Dict[str, Any]]:
-        """Yield intermediate events/states during execution."""
+        """Yield intermediate events. Implementations should be async generators."""
 
     @abstractmethod
     async def checkpoint(self, thread_id: str, state: AgentState) -> None:
