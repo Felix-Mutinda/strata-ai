@@ -1,7 +1,12 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Type
+from typing import Annotated, Any, Dict, List, Optional, Type
 from pydantic import BaseModel, Field
 
+from .messages import AgentMessage
+
+def _append_messages(left: List[AgentMessage], right: List[AgentMessage]) -> List[AgentMessage]:
+    """Framework-agnostic message accumulator."""
+    return left + right
 
 class AgentConfig(BaseModel):
     name: str
@@ -11,14 +16,12 @@ class AgentConfig(BaseModel):
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
     tags: List[str] = Field(default_factory=list)
 
-
 class AgentState(BaseModel):
-    messages: List[Dict[str, Any]] = Field(default_factory=list)
+    messages: Annotated[List[AgentMessage], _append_messages] = Field(default_factory=list)
     context: Dict[str, Any] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    status: str = Field(default="running")  # running | awaiting_human | done | error
+    status: str = Field(default="running")
     thread_id: Optional[str] = Field(default=None)
-
 
 class AgentResult(BaseModel):
     thread_id: str
@@ -27,10 +30,7 @@ class AgentResult(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
 
-
 class AgentDefinition(BaseModel):
-    """Intermediate representation passed to runtime.compile()"""
-
     config: AgentConfig
     state_schema: Type[BaseModel] = AgentState
     nodes: List[Any] = Field(default_factory=list)
