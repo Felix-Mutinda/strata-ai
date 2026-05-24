@@ -1,0 +1,19 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[manifest]
+members = [
+    "strata-ai",
+    "strata-ai-cli",
+]
+
+[[package]]
+name = "strata-ai"
+version = "0.1.0"
+source = { editable = "sdk" }
+
+[[package]]
+name = "strata-ai-cli"
+version = "0.1.0"
+source = { editable = "cli" }

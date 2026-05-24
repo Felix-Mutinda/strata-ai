@@ -1,16 +1,16 @@
 [project]
-name = "strata-cli"
+name = "strata-ai-cli"
 version = "0.1.0"
-description = "Add your description here"
+description = "Strata AI CLI"
 readme = "README.md"
 authors = [
     { name = "felix", email = "1mutindafelix@gmail.com" }
 ]
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 dependencies = []
 
 [project.scripts]
-strata_cli = "cli:main"
+strata_ai_cli = "cli:main"
 
 [build-system]
 requires = ["uv_build>=0.9.11,<0.10.0"]
