@@ -1,5 +1,5 @@
 # Strata AI Architecture
-**Philosophy:** *Layered contracts for AI systems. Enterprise governance by default. Domain teams get a working, observable scaffold on Day 1.*
+**Philosophy:** Layered contracts for AI systems. Enterprise governance by default. Domain teams get a working, observable scaffold on Day 1.
 
 ## 🧭 Core Principles
 1. **Inversion of Framework Dependency** → Agent patterns import `strata_ai`, never `langgraph` or `google.adk`. The runtime is a pluggable implementation detail.
@@ -12,14 +12,16 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ L5: CLI Scaffolds (strata-cli)                          │
-│   create-agent | create-api | create-batch              |
+│   create-agent | create-api | create-batch |            |
+|   create-serving (spec-only)                            |
 ├─────────────────────────────────────────────────────────┤
 │ L4: Agent Patterns                                      │
 │   ReAct | HITL | Orchestrator | Plan-and-Execute        │
 │   Reflection | Parallelizer | RAG                       │
 ├─────────────────────────────────────────────────────────┤
-│ L3: Core Primitives                                     │
+│ L3: Core Primitives & Contracts                         │
 │   BaseAgent | Tool | AgentState | Memory | Message      │
+│   TaskQueueAdapter | StateMigrationRegistry             │
 ├─────────────────────────────────────────────────────────┤
 │ L2: Cross-Cutting Concerns                              │
 │   Observability (OTel) | Security (PII/Guardrails)      │
@@ -30,46 +32,57 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 🔁 Inversion of Control
-The `AgentRuntime` ABC isolates framework coupling:
+## 🔁 `AgentRuntime` ABC Surface (Published Contract)
 ```python
-# Pattern code NEVER imports langgraph/adk
-from strata_ai import ReActAgent, AgentConfig
-from strata_ai.runtime import LangGraphAdapter  # swappable
-
-agent = ReActAgent(config=..., runtime=LangGraphAdapter())
-# Swap to ADKAdapter() or MockRuntime() without touching agent logic
+class AgentRuntime(ABC):
+    @abstractmethod
+    async def compile(self, definition: AgentDefinition) -> Any: ...
+    @abstractmethod
+    async def run(self, compiled: Any, input: Dict, config: RunConfig) -> AgentResult: ...
+    @abstractmethod
+    def stream(self, compiled: Any, input: Dict, config: RunConfig) -> AsyncGenerator[AgentEvent, None]: ...
+    @abstractmethod
+    async def checkpoint(self, thread_id: str, state: AgentState) -> None: ...
+    @abstractmethod
+    async def resume(self, thread_id: str, human_input: Dict) -> AgentResult: ...
 ```
+**Ownership Boundary:** `BaseAgent` owns tool dispatch, retry/backoff, guardrails, and iteration limits. `AgentRuntime` owns graph topology, state persistence, streaming yield, and checkpoint storage.
 
-## 🛡️ Enterprise Defaults
-| Concern | Implementation | Production Guarantee |
-|---------|----------------|----------------------|
-| Observability | OTel auto-instrumentation → MLflow/Langfuse/OTLP | Trace trees, token/cost tracking, latency percentiles |
-| Security | `PIIFilter` (MSISDN, ID, email, refs) + `Guardrail` middleware | Prompt injection detection, topic boundaries, cost hard-stops |
-| Governance | `AuditLog` (immutable) + `LineageTracker` (MLflow-backed) | Run-to-model/version/prompt mapping. GDPR-compliant sinks |
-| Errors | RFC 9457 `ProblemDetail` handlers | Standardized frontend/CLI parity. Zero 500 leaks |
+## 🛡️ State & Memory Contracts
+| Contract | Ownership | Behavior |
+|----------|-----------|----------|
+| `AgentState` | Core | Pydantic-validated, versioned (`state_version`), canonical truth |
+| `StateMigrationRegistry` | Core | Explicit `vN→vN+1` callables. Adapter invokes on `resume()` before validation |
+| `MemoryAdapter.fork()` | Runtime/Agent | Copy-on-write namespace. **Merge-on-complete** for orchestrators. Discard on failure |
+| `TaskQueueAdapter` | Platform | HITL pending state & async polling. `InMemoryTaskQueue` (dev) ↔ `RedisTaskQueue` (prod) |
+
+## 🚨 Internal Exception Hierarchy
+```
+StrataBaseError
+├── LLMProviderError (rate_limit, context_overflow, malformed_tool)
+├── GuardrailViolationError (prompt_injection, topic_boundary, cost_exceeded)
+├── CheckpointStateError (schema_mismatch, missing_thread, version_drift)
+└── DataLeakError (PII detected in prompt/output)
+```
+All map to RFC 9457 `ProblemDetail` at the API edge. Domain teams catch typed exceptions, not `Exception`.
 
 ## 🗂️ Anti-Refactor Workspace Layout
 ```
 strata-ai/
 ├── sdk/ → src/strata_ai/          ← Core contract + domain modules (agent/api/batch)
-├── cli/ → src/strata_cli/      ← Thin scaffolding orchestrator (Jinja2 + Typer)
-└── tests/                      ← Parity, mock runtime, CI gates
+├── cli/ → src/strata_ai_cli/         ← Thin scaffolding orchestrator (Jinja2 + Typer)
+└── tests/                         ← Parity, mock runtime, CI gates
 ```
-- `strata_ai.core` owns lifecycle, DI, OTel, security, governance, errors. **Never duplicated.**
-- `strata_ai.agent`, `strata_ai.api`, `strata_ai.batch` are **thin domain layers** consuming `core` contracts.
-- CLI generates **identical repo skeletons**; only `app/main.py` router inclusion differs.
-
-## 🤝 Integration Philosophy
-- **We scaffold contracts, not runtimes.** Generate code that integrates with LangGraph, ADK, Langfuse, MLflow, Prefect. Do not replace them.
-- **FastAPI mental model:** `StrataAIApp.build()` → lifespan → DI → middleware → routers → RFC errors. Same structure, agent topology.
-- **Day 1 scaffolds:** Platform owns bootstrap. Domain teams own business logic. Clear ownership boundaries prevent refactor debt.
+- `strata_ai.core` owns lifecycle, DI, OTel, security, governance, errors, state migration. **Never duplicated.**
+- CLI/SDK versioning enforced via `cli_sdk_lock.toml` (range constraint, CI compatibility check).
 
 ## 📅 Phase Roadmap
 | Phase | Focus | Deliverables |
 |-------|-------|--------------|
-| 0 | Foundation & Contract | `AgentRuntime` ABC, `MockRuntime`, `StrataAIApp.build()`, workspace setup, semantic-release |
-| 1 | Core & Agent MVP | `strata_ai.core`, `ReActAgent`, `@tool`, `LangGraphAdapter`, `create-agent` CLI, OTel bootstrap |
-| 2 | API & Batch Unification | `strata_ai.api`, `strata_ai.batch`, `create-api`, `create-batch`, shared lifecycle parity |
-| 3 | Enterprise Defaults | PII, guardrails, `AuditLog`, `HITLAgent`, `AgentEvaluator`, `create-serving` |
-| 4 | Release & Docs | PyPI publish, migration guides, CI/CD fallback, contributor automation |
+| **1.0** | Core App Contract | `StrataAIApp`, DI, RFC 9457, Loguru lifespan |
+| **1.1** | Runtime Inversion | `AgentRuntime` ABC, `MockRuntime`, `BaseAgent`, parity tests |
+| **1.2** | Agent Patterns & `@tool` | `ReActAgent`, schema gen, LangGraph boundary mapping |
+| **1.3** | State Migration & Task Queue | `StateMigrationRegistry`, `TaskQueueAdapter` ABC, `MemoryAdapter` scoping |
+| **1.4** | CLI `create-agent` | Jinja2 templates, adapter injection, dev/prod parity |
+| **2** | API & Batch Unification | Shared lifecycle, `create-api`/`create-batch`, `PipelineRuntime` ABC |
+| **3** | Advanced Governance & ADK | `ADKAdapter`, eval pipeline, multi-runtime parity, release |

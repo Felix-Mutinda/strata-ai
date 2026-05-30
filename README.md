@@ -17,11 +17,11 @@ uv run test # deterministic, zero LLM calls
 | Path | Purpose | Docs |
 |------|---------|------|
 | `sdk/` | `strata-ai`: Core primitives, runtime adapters, enterprise contracts | [sdk/README.md](sdk/README.md) |
-| `cli/` | `strata-cli`: Scaffolding orchestrator, Jinja2 templates, Typer commands | [cli/README.md](cli/README.md) |
+| `cli/` | `strata-ai-cli`: Scaffolding orchestrator, Jinja2 templates, Typer commands | [cli/README.md](cli/README.md) |
 | `tests/` | Unit/integration parity tests, mock runtimes, CI gates | `CONTRIBUTING.md` |
 | `ARCHITECTURE.md` | 5-layer design, inversion principles, phase roadmap | [Architecture](ARCHITECTURE.md) |
 
-## 🎯 Why Strata AI?
+## 🎯 Why Strata?
 - **FastAPI Mental Model** → `lifespan` → DI → middleware → routers → RFC errors. Same structure, agent topology.
 - **Runtime Inversion** → Swap LangGraph ↔ ADK ↔ Mock without refactoring patterns.
 - **Enterprise Defaults On** → OTel, PII filtering, guardrails, audit trails, structured errors.
@@ -30,11 +30,13 @@ uv run test # deterministic, zero LLM calls
 ## 🛠️ Status
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 0 | Foundation & Contract | 🟢 Ready |
-| 1 | Core & Agent MVP | 🟡 In Progress |
+| 1.0 | Core App Contract | 🟢 Complete |
+| 1.1 | Runtime Inversion | 🟢 Complete |
+| 1.2 | Agent Patterns & `@tool` | 🟢 Complete |
+| **1.3** | **State Migration & Task Queue** | 🟡 In Progress |
+| 1.4 | CLI `create-agent` | ⬜ Planned |
 | 2 | API & Batch Unification | ⬜ Planned |
-| 3 | Enterprise Defaults | ⬜ Planned |
-| 4 | Release & Docs | ⬜ Planned |
+| 3 | Advanced Governance & ADK | ⬜ Planned |
 
 ## 📖 Next Steps
 1. Review [Architecture](ARCHITECTURE.md)

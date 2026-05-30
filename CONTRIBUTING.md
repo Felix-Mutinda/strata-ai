@@ -56,6 +56,11 @@ Every SDK module must:
 | `docs:` / `chore:` / `ci:` / `test:` | none | `docs: add HITL pattern example to README` |
 | `feat!:` or `BREAKING CHANGE:` | major | `feat!: remove LangGraphAdapter.sync_compile() → 0.1.0 → 1.0.0` |
 
+## 🔄 CLI/SDK Versioning
+- `cli_sdk_lock.toml` enforces range compatibility: `sdk >= 0.x.0, < 0.(x+1).0`
+- `feat(cli)` consuming new SDK features **must** be preceded by `feat(sdk)` minor bump.
+- CI runs `uvx strata verify-compatibility` to validate generated `pyproject.toml` against lock.
+
 ## 🚦 Release Checklist (Automated via CI, manual fallback)
 1. Merge PR to `main` (all CI checks green: `ruff`, `pyright`, `pytest`, coverage ≥80%)
 2. Run manually if needed:

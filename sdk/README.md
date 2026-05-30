@@ -4,17 +4,16 @@
 ## 📦 Installation
 ```bash
 uv add strata-ai
-# or pip install strata-ai
 ```
 
 ## 🧩 Module Structure
 | Package | Purpose |
 |---------|---------|
-| `strata_ai.core` | `StrataAIApp.build()`, lifespan, DI container, OTel bootstrap, security, governance, RFC 9457 errors |
-| `strata_ai.agent` | `BaseAgent`, `ReActAgent`, `HITLAgent`, `OrchestratorAgent`, `@tool` decorator, `AgentState` |
+| `strata_ai.core` | `StrataAIApp.build()`, lifespan, DI, OTel, security, governance, RFC 9457, `StateMigrationRegistry`, `TaskQueueAdapter` |
+| `strata_ai.agent` | `BaseAgent`, `ReActAgent`, `HITLAgent`, `OrchestratorAgent`, `@tool`, `AgentState`, `MemoryAdapter` |
 | `strata_ai.api` | FastAPI middleware stack, task routers, sync/async polling contracts |
 | `strata_ai.batch` | `BasePipeline`, async queue adapters, feature store IO, eval golden runners |
-| `strata_ai.runtime` | `AgentRuntime` ABC, `LangGraphAdapter`, `MockRuntime`, checkpoint/resume |
+| `strata_ai.runtime` | `AgentRuntime` ABC, `LangGraphAdapter`, `MockRuntime` (strict mode), checkpoint/resume |
 
 ## 🔁 Runtime Inversion
 Agent patterns **never** import framework internals. The runtime is injected:
@@ -35,18 +34,14 @@ Swap runtimes in config. Zero pattern refactors.
 - **Observability:** OTel spans auto-emitted on every `run()`, `stream()`, `tool.call`. Ships to MLflow/Langfuse/OTLP.
 - **Security:** `PIIFilter` (MSISDN, ID, email, refs) + `Guardrail` middleware. Enabled when `pii_sensitive=True`.
 - **Governance:** `AuditLog` (immutable) + `LineageTracker` (MLflow-backed). GDPR-compliant sink adapters.
-- **Errors:** RFC 9457 `ProblemDetail` handlers registered automatically. No 500 leaks.
+- **Errors:** `StrataBaseError` hierarchy → RFC 9457 `ProblemDetail` at API edge. Zero 500 leaks.
 
 ## 🧪 Testability
 ```python
 from strata_ai.runtime import MockRuntime
 
-# Inject mock for deterministic CI
-agent = ReActAgent(config=..., runtime=MockRuntime(), tools=[...])
+# Strict mode enforces 5 invariants: state immutability, tool-result pairing, checkpoint-before-resume, audit-on-violation, deterministic threads
+agent = ReActAgent(config=..., runtime=MockRuntime(strict=True), tools=[...])
 result = await agent.run({"input": "test"})
-assert result.status == "done"
 ```
 Zero LLM calls. Fast CI. Pattern parity verified via `tests/integration/test_runtime_parity.py`.
-
-## 📖 Usage Patterns
-See `ARCHITECTURE.md` for detailed pattern implementations (`ReAct`, `HITL`, `Orchestrator`, `Plan-and-Execute`, `Reflection`, `Parallelizer`, `RAG`).
