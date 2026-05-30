@@ -8,8 +8,10 @@ from strata_ai.core.models import AgentState, AgentResult, AgentDefinition
 class MockRuntime(AgentRuntime):
     """In-memory, deterministic runtime for unit tests and local dev."""
 
-    def __init__(self) -> None:
-        self._store: Dict[str, AgentState] = {}
+    def __init__(self, strict: bool = False) -> None:
+        self.strict = strict
+        self._store: Dict[str, Any] = {}
+        self._checkpoints: Dict[str, Any] = {}
 
     async def compile(self, definition: AgentDefinition) -> Any:
         return {"definition": definition, "compiled_at": "mock"}
@@ -20,6 +22,9 @@ class MockRuntime(AgentRuntime):
         input: Dict[str, Any],
         config: Dict[str, Any] | None = None,
     ) -> AgentResult:
+        if self.strict:
+            self._verify_invariants(input, config)
+
         thread_id = config.get("thread_id", "mock-thread") if config else "mock-thread"
         return AgentResult(
             thread_id=thread_id,
@@ -27,6 +32,16 @@ class MockRuntime(AgentRuntime):
             output=f"[mock] processed by {compiled_agent['definition'].config.name}",
             metadata={"runtime": "mock", "iterations": 1, "mock_input": input},
         )
+
+    def _verify_invariants(self, input: Dict, config: Dict | None) -> None:
+        if config and config.get("action") == "resume":
+            tid = config.get("thread_id")
+            if tid not in self._checkpoints:
+                from strata_ai.core.exceptions import CheckpointStateError
+
+                raise CheckpointStateError(
+                    f"resume() called without prior checkpoint for {tid}"
+                )
 
     async def stream(
         self,

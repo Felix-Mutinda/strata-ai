@@ -3,6 +3,21 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
+class StrataBaseError(Exception): ...
+
+
+class LLMProviderError(StrataBaseError): ...
+
+
+class GuardrailViolationError(StrataBaseError): ...
+
+
+class CheckpointStateError(StrataBaseError): ...
+
+
+class DataLeakError(StrataBaseError): ...
+
+
 async def validation_exception_handler(
     request: Request, exc: Exception
 ) -> JSONResponse:

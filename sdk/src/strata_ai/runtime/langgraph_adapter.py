@@ -9,9 +9,11 @@ from strata_ai.runtime.base import AgentRuntime
 from strata_ai.core.models import AgentState, AgentResult, AgentDefinition
 from strata_ai.core.messages import AgentMessage
 
+
 def _langgraph_append_messages(left: list, right: list) -> list:
     """LangGraph-compatible list reducer. Bypasses strict OpenAI parser."""
     return left + right
+
 
 class GraphState(TypedDict, total=False):
     messages: Annotated[list, _langgraph_append_messages]
@@ -19,6 +21,7 @@ class GraphState(TypedDict, total=False):
     metadata: dict
     status: str
     thread_id: Optional[str]
+
 
 class LangGraphAdapter(AgentRuntime):
     """Translates Strata AI agent definitions to LangGraph StateGraphs."""
@@ -39,7 +42,9 @@ class LangGraphAdapter(AgentRuntime):
 
     def _to_core_state(self, graph_state: GraphState) -> AgentState:
         """TypedDict → Pydantic boundary validation."""
-        messages = [AgentMessage.model_validate(m) for m in graph_state.get("messages", [])]
+        messages = [
+            AgentMessage.model_validate(m) for m in graph_state.get("messages", [])
+        ]
         return AgentState(
             messages=messages,
             context=graph_state.get("context", {}),
@@ -59,14 +64,13 @@ class LangGraphAdapter(AgentRuntime):
 
         for src, condition_fn, mapping in definition.conditional_edges:
             target_map = {
-                k: (END if v in ("END", "__end__") else v) 
-                for k, v in mapping.items()
+                k: (END if v in ("END", "__end__") else v) for k, v in mapping.items()
             }
             graph.add_conditional_edges(src, condition_fn, target_map)
 
         if definition.entry_point is None:
             raise ValueError("AgentDefinition.entry_point must be set.")
-        
+
         graph.set_entry_point(definition.entry_point)
         return graph.compile(checkpointer=self._checkpointer)
 
@@ -76,22 +80,44 @@ class LangGraphAdapter(AgentRuntime):
         input: Dict[str, Any],
         config: Dict[str, Any] | None = None,
     ) -> AgentResult:
-        thread_id = config.get("thread_id", "default-thread") if config else "default-thread"
+        thread_id = (
+            config.get("thread_id", "default-thread") if config else "default-thread"
+        )
         try:
-            initial = {"messages": [], "context": {}, "metadata": {}, "status": "running", "thread_id": thread_id}
-            output = await compiled_agent.ainvoke(initial | input, config={"configurable": {"thread_id": thread_id}})
+            initial = {
+                "messages": [],
+                "context": {},
+                "metadata": {},
+                "status": "running",
+                "thread_id": thread_id,
+            }
+            output = await compiled_agent.ainvoke(
+                initial | input, config={"configurable": {"thread_id": thread_id}}
+            )
             return AgentResult(
-                thread_id=thread_id, status="done", output=output,
-                metadata={"runtime": "langgraph", "checkpointer": type(self._checkpointer).__name__},
+                thread_id=thread_id,
+                status="done",
+                output=output,
+                metadata={
+                    "runtime": "langgraph",
+                    "checkpointer": type(self._checkpointer).__name__,
+                },
             )
         except Exception as e:
             return AgentResult(thread_id=thread_id, status="error", error=str(e))
 
     async def stream(
-        self, compiled_agent: Any, input: Dict[str, Any], config: Dict[str, Any] | None = None
+        self,
+        compiled_agent: Any,
+        input: Dict[str, Any],
+        config: Dict[str, Any] | None = None,
     ) -> AsyncIterator[Dict[str, Any]]:
-        thread_id = config.get("thread_id", "stream-thread") if config else "stream-thread"
-        async for event in compiled_agent.astream(input, config={"configurable": {"thread_id": thread_id}}):
+        thread_id = (
+            config.get("thread_id", "stream-thread") if config else "stream-thread"
+        )
+        async for event in compiled_agent.astream(
+            input, config={"configurable": {"thread_id": thread_id}}
+        ):
             yield event
 
     async def checkpoint(self, thread_id: str, state: AgentState) -> None:
@@ -101,11 +127,15 @@ class LangGraphAdapter(AgentRuntime):
     async def resume(self, thread_id: str, human_input: Dict[str, Any]) -> AgentResult:
         graph_state = self._store.get(thread_id)
         if not graph_state:
-            return AgentResult(thread_id=thread_id, status="error", error="Checkpoint not found")
-        
+            return AgentResult(
+                thread_id=thread_id, status="error", error="Checkpoint not found"
+            )
+
         graph_state["status"] = "done"
         graph_state["context"]["human_input"] = human_input
         return AgentResult(
-            thread_id=thread_id, status="done", output={"resumed_with": human_input},
+            thread_id=thread_id,
+            status="done",
+            output={"resumed_with": human_input},
             metadata={"runtime": "langgraph", "resumed": True},
         )
