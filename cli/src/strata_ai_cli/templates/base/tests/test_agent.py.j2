@@ -1,0 +1,13 @@
+"""DEV OWNED: Agent unit tests. MockRuntime injected automatically."""
+import pytest
+from agent.agent import create_agent
+from strata_ai.runtime import MockRuntime
+
+@pytest.mark.asyncio
+async def test_agent_run_deterministic():
+    agent = create_agent()
+    assert isinstance(agent.runtime, MockRuntime)  # Dev default
+    
+    result = await agent.run({"query": "test_scenario"})
+    assert result.status == "done"
+    assert result.thread_id is not None

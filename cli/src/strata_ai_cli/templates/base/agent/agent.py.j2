@@ -1,0 +1,24 @@
+"""DEV OWNED: Agent business logic and tools. Platform owns routing & middleware."""
+from fastapi import APIRouter, Body
+from typing import Dict, Any
+from strata_ai import ReActAgent, AgentConfig, AgentResult
+from strata_ai.runtime import MockRuntime
+from agent.tools import get_default_tools
+
+router = APIRouter(prefix="/agent", tags=["agent"])
+
+def create_agent() -> ReActAgent:
+    config = AgentConfig(
+        name="{{ project_name }}",
+        model="{{ model }}",
+        instructions=f"You are a specialized assistant for {{ project_name_title }}.",
+    )
+    # DEV: Swap to LangGraphAdapter or ADKAdapter for production deployments
+    runtime = MockRuntime()
+    return ReActAgent(config=config, runtime=runtime, tools=get_default_tools())
+
+@router.post("/run", response_model=Dict[str, Any])
+async def run_agent(payload: Dict[str, Any] = Body(...)):
+    agent = create_agent()
+    result: AgentResult = await agent.run(payload)
+    return {"status": result.status, "thread_id": result.thread_id, "output": result.output}

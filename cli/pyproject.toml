@@ -7,10 +7,14 @@ authors = [
     { name = "felix", email = "1mutindafelix@gmail.com" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "jinja2>=3.1.6",
+    "rich>=15.0.0",
+    "typer>=0.26.4",
+]
 
 [project.scripts]
-strata_ai_cli = "cli:main"
+strata_ai_cli = "main:app"
 
 [build-system]
 requires = ["uv_build>=0.9.11,<0.10.0"]

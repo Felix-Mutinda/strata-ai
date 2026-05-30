@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from cli!")
+"""Strata AI CLI"""
+
+__version__ = "0.1.0"
