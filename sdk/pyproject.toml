@@ -1,12 +1,26 @@
 [project]
 name = "strata-ai"
 version = "0.1.0"
-description = "Strata AI SDK"
+description = "Strata AI SDK. Enterprise AI Agents, APIs, ML Pipeline contracts"
 readme = "README.md"
 authors = [
     { name = "felix", email = "1mutindafelix@gmail.com" }
 ]
+license = {text = "MIT"}
 requires-python = ">=3.10"
+keywords = ["ai", "agents", "langgraph", "observability", "governance", "scaffold"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
 dependencies = [
     "fastapi==0.136.3",
     "httpx==0.28.1",
@@ -16,6 +30,12 @@ dependencies = [
     "pydantic-settings==2.14.1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Felix-Mutinda/strata-ai"
+Documentation = "https://github.com/Felix-Mutinda/strata-ai"
+Repository = "https://github.com/Felix-Mutinda/strata-ai"
+Issues = "https://github.com/Felix-Mutinda/strata-ai/issues"
+Changelog = "https://github.com/Felix-Mutinda/strata-ai/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["uv_build>=0.9.11,<0.10.0"]
