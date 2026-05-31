@@ -1752,11 +1752,12 @@ requires-dist = [
 
 [[package]]
 name = "strata-ai-cli"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "cli" }
 dependencies = [
     { name = "jinja2" },
     { name = "rich" },
+    { name = "strata-ai" },
     { name = "typer" },
 ]
 
@@ -1764,6 +1765,7 @@ dependencies = [
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "rich", specifier = ">=15.0.0" },
+    { name = "strata-ai", editable = "sdk" },
     { name = "typer", specifier = ">=0.26.4" },
 ]
 
