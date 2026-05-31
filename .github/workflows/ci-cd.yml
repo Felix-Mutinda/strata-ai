@@ -1,0 +1,135 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Force publish to PyPI/GitHub Releases'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write      # OIDC for PyPI trusted publishing
+  contents: write      # GitHub Releases
+  attestations: write  # Provenance attestation
+  packages: write
+
+jobs:
+  lint-and-test:
+    strategy:
+      matrix:
+        python: ['3.10', '3.11', '3.12', '3.13']
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Install workspace dependencies
+        run: uv sync --all-packages --dev
+
+      - name: Lint (Ruff)
+        run: uv run ruff check . --output-format=github
+
+      - name: Type Check (Pyright)
+        run: uv run pyright .
+
+      - name: Test & Coverage
+        run: uv run pytest tests/ -v --cov=strata_ai --cov=strata_ai_cli --cov-report=xml
+
+      - name: Upload Coverage
+        if: matrix.python == '3.10'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  build:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ['sdk', 'cli']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build ${{ matrix.package }}
+        run: |
+          cd ${{ matrix.package }}
+          # Explicitly scope output to package-local dist/ to prevent workspace root collisions
+          uv build --out-dir dist
+
+      - name: Verify build output
+        run: |
+          echo "Checking ${{ matrix.package }}/dist/..."
+          ls -la ${{ matrix.package }}/dist/
+          if [ -z "$(ls -A ${{ matrix.package }}/dist/)" ]; then
+            echo "::error::Build directory is empty!"
+            exit 1
+          fi
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          # Pass directory path instead of glob; action attests all files within
+          subject-path: '${{ matrix.package }}/dist'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.package }}
+          path: '${{ matrix.package }}/dist/'
+          retention-days: 5
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') ||
+      github.event.inputs.publish == 'true' ||
+      (github.ref == 'refs/heads/main' && github.event_name == 'push')
+    runs-on: ubuntu-latest
+    environment: pypi-publish
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      - name: Verify downloaded artifacts
+        run: ls -la dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          print-hash: true
+          verbose: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

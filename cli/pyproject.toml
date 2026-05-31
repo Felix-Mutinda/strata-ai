@@ -1,0 +1,26 @@
+[project]
+name = "strata-ai-cli"
+version = "0.1.0"
+description = "Strata AI CLI. Scaffold Enterprise ready AI agents, APIs & ML Pipelines."
+readme = "README.md"
+authors = [
+    { name = "felix", email = "1mutindafelix@gmail.com" }
+]
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2>=3.1.6",
+    "rich>=15.0.0",
+    "typer>=0.26.4",
+]
+
+[project.scripts]
+strata_ai_cli = "main:app"
+
+[project.urls]
+Homepage = "https://github.com/Felix-Mutinda/strata-ai"
+Documentation = "https://github.com/Felix-Mutinda/strata-ai"
+
+[build-system]
+requires = ["uv_build>=0.9.11,<0.10.0"]
+build-backend = "uv_build"

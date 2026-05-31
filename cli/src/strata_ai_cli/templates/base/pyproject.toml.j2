@@ -1,0 +1,19 @@
+[project]
+name = "{{ project_name }}"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "strata-ai>={{ sdk_version }}",
+    "fastapi>=0.136.3",
+    "uvicorn>=0.48.0",
+    "httpx>=0.28.1",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+dev = "app.main:run_dev"

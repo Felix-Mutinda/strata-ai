@@ -1,0 +1,12 @@
+"""DEV OWNED: Tool definitions. Type hints -> JSON Schema automatically."""
+from strata_ai import tool
+from typing import Dict, Any
+
+@tool(description="Example domain tool. Replace with business logic.")
+def example_lookup(query: str, limit: int = 10) -> Dict[str, Any]:
+    """Simulates a domain lookup. Auto-traced, auto-PII-filtered."""
+    return {"status": "success", "query": query, "limit": limit}
+
+def get_default_tools():
+    """Returns list of tools wired to the agent."""
+    return [example_lookup]
