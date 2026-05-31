@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-strata_ai_cli = "main:app"
+strata-ai-cli = "strata_ai_cli.main:app"
 
 [project.urls]
 Homepage = "https://github.com/Felix-Mutinda/strata-ai"
