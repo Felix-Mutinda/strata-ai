@@ -1,6 +1,6 @@
 [project]
 name = "strata-ai-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "Strata AI CLI. Scaffold Enterprise ready AI agents, APIs & ML Pipelines."
 readme = "README.md"
 authors = [
