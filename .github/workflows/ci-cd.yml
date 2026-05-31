@@ -71,20 +71,30 @@ jobs:
       - name: Build ${{ matrix.package }}
         run: |
           cd ${{ matrix.package }}
-          uv build
-        env:
-          UV_BUILD_BACKEND: uv_build
+          # Explicitly scope output to package-local dist/ to prevent workspace root collisions
+          uv build --out-dir dist
+
+      - name: Verify build output
+        run: |
+          echo "Checking ${{ matrix.package }}/dist/..."
+          ls -la ${{ matrix.package }}/dist/
+          if [ -z "$(ls -A ${{ matrix.package }}/dist/)" ]; then
+            echo "::error::Build directory is empty!"
+            exit 1
+          fi
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: '${{ matrix.package }}/dist/*'
+          # Pass directory path instead of glob; action attests all files within
+          subject-path: '${{ matrix.package }}/dist'
 
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.package }}
-          path: ${{ matrix.package }}/dist/
+          path: '${{ matrix.package }}/dist/'
           retention-days: 5
+          if-no-files-found: error
 
   publish:
     needs: build
@@ -103,6 +113,9 @@ jobs:
           path: dist
           pattern: dist-*
           merge-multiple: true
+
+      - name: Verify downloaded artifacts
+        run: ls -la dist/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
